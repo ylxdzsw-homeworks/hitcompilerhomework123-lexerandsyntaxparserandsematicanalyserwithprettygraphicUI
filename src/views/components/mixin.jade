@@ -1,0 +1,28 @@
+mixin fixedHeightDiv(height)
+    div.fixed-height-div(style="height:#{height}px")&attributes(attributes)
+        block
+
+mixin spaceSpan
+    span&attributes(attributes) &nbsp;
+
+mixin splitterLine
+    hr.splitter-line&attributes(attributes)
+
+mixin iconfont(name)
+    i.iconfont(class="icon-#{name}")&attributes(attributes)
+
+mixin require(file)
+    -var suffix = file.split('.').slice(-1)[0]
+    case suffix
+        when 'js'
+            script(src="scripts/#{file}")
+        when 'css'
+            link(rel='stylesheet', href="styles/#{file}")
+
+mixin lib(file)
+    -var suffix = file.split('.').slice(-1)[0]
+    case suffix
+        when 'js'
+            script(src="lib/#{file}")
+        when 'css'
+            link(rel='stylesheet', href="lib/#{file}")

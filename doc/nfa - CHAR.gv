@@ -1,0 +1,17 @@
+digraph NFA {
+	rankdir=LR;
+	node [fontsize=20 fontname=Consolas]
+	edge [fontsize=20 fontname=Consolas]
+
+	start [shape=plaintext]
+
+	s7    [label="CHAR"        shape=doublecircle]
+
+
+	start -> n12 [label="'"]
+	n12 -> n13 [label="[^'\\n]"]
+	n13 -> s7 [label="'"]
+
+
+
+}

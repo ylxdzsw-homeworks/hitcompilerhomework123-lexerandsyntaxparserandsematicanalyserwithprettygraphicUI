@@ -1,0 +1,10 @@
+digraph NFA {
+	rankdir=LR;
+	node [fontsize=20 fontname=Consolas]
+
+	start [shape=plaintext]
+	s1    [label="ID|KEY|BOOL" shape=doublecircle]
+
+	start -> s1 [label="_ a-z A-Z"]
+	s1 -> s1 [label="_ a-z A-Z 0-9"]
+}

@@ -1,0 +1,16 @@
+digraph NFA {
+	rankdir=LR;
+	node [fontsize=20 fontname=Consolas]
+	edge [fontsize=20 fontname=Consolas]
+
+	start [shape=plaintext]
+
+	s6    [label="STRING"      shape=doublecircle]
+
+
+	start -> n11 [label="\""]
+	n11 -> n11 [label="[^\"\\n]"]
+	n11 -> s6 [label="\""]
+
+
+}

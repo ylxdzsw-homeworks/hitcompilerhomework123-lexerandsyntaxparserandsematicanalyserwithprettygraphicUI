@@ -1,0 +1,22 @@
+include components/mixin.jade
+
+doctype html
+html(lang='zh-cn')
+    head
+        meta(charset='utf-8')
+        meta(name='viewport', content="width=375, initial-scale=1, maximum-scale=1")
+        
+        +lib("underscore.js")
+        +lib("zepto.js")
+
+        +lib("prettify.css")
+        +lib("prettify.js")
+
+        +require("main.css")
+        +require("main.js")
+
+        title fuck
+    body
+        div#input
+            include components/input.jade
+        +require("Lexer.js")

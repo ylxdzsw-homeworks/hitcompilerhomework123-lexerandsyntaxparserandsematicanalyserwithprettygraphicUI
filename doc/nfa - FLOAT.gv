@@ -1,0 +1,19 @@
+digraph NFA {
+	rankdir=LR;
+	node [fontsize=20 fontname=Consolas]
+
+	start [shape=plaintext]
+	s9    [label="FLOAT"       shape=doublecircle]
+
+	start -> n1 [label="1-9"]
+	n1 -> n1 [label="0-9"]
+	n1 -> n3 [label="."]
+	n3 -> n4 [label="1-9"]
+	n4 -> n4 [label="0-9"]
+	n4 -> s9 [label="ε"]
+	n4 -> n5 [label="e E"]
+	n5 -> n6 [label="-"]
+	n5 -> s9 [label="1-9"]
+	n6 -> s9 [label="1-9"]
+	s9 -> s9 [label="0-9"]
+}

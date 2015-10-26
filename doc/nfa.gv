@@ -1,0 +1,83 @@
+digraph NFA {
+	rankdir=LR;
+	node [fontsize=20 fontname=Consolas]
+	edge [fontsize=20 fontname=Consolas]
+
+	start [shape=plaintext]
+	s1    [label="ID|KEY|BOOL" shape=doublecircle]
+	s2    [label="EQ"          shape=doublecircle]
+	s3    [label="LF"          shape=doublecircle]
+	s4    [label="MLP"         shape=doublecircle]
+	s5    [label="MRP"         shape=doublecircle]
+	s6    [label="STRING"      shape=doublecircle]
+	s7    [label="CHAR"        shape=doublecircle]
+	s8    [label="INT"         shape=doublecircle]
+	s9    [label="FLOAT"       shape=doublecircle]
+	s10   [label="OP"          shape=doublecircle]
+	s11   [label="COMMENT"     shape=doublecircle]
+	s12   [label="SLP"         shape=doublecircle]
+	s13   [label="SRP"         shape=doublecircle]
+	s14   [label="COMMA"       shape=doublecircle]
+	s15   [label="LLP"         shape=doublecircle]
+	s16   [label="LRP"         shape=doublecircle]
+
+	start -> s1 [label="_ a-z A-Z"]
+	s1 -> s1 [label="_ a-z A-Z 0-9"]
+
+	start -> s2 [label="="]
+
+	start -> s3 [label="\\n"]
+
+	start -> s4 [label="["]
+
+	start -> s5 [label="]"]
+
+	start -> n11 [label="\""]
+	n11 -> n11 [label="[^\"\\n]"]
+	n11 -> s6 [label="\""]
+
+	start -> n12 [label="'"]
+	n12 -> n13 [label="[^'\\n]"]
+	n13 -> s7 [label="'"]
+
+	start -> n1 [label="1-9"]
+	n1 -> n1 [label="0-9"]
+	n1 -> s8 [label="ε"]
+	n1 -> n2 [label="e E"]
+	n2 -> s8 [label="1-9"]
+	s8 -> s8 [label="0-9"]
+
+	n1 -> n3 [label="."]
+	n3 -> n4 [label="1-9"]
+	n4 -> n4 [label="0-9"]
+	n4 -> s9 [label="ε"]
+	n4 -> n5 [label="e E"]
+	n5 -> n6 [label="-"]
+	n5 -> s9 [label="1-9"]
+	n6 -> s9 [label="1-9"]
+	s9 -> s9 [label="0-9"]
+
+	start -> n7 [label="! < >"]
+	n7 -> s10 [label="= ε"]
+	s2 -> s10 [label="="]
+	start -> s10 [label="+ - * & |"]
+	
+	start -> n8 [label="/"]
+	n8 -> s10 [label="ε"]
+	n8 -> n9 [label="*"]
+	n9 -> n9 [label="[^*]"]
+	n9 -> n10 [label="*"]
+	n10 -> n9 [label="[^/]"]
+	n10 -> s11 [label="/"]
+
+	start -> s12 [label="("]
+
+	start -> s13 [label=")"]
+
+	start -> s14 [label=","]
+
+	start -> s15 [label="{"]
+
+	start -> s16 [label="}"]
+
+}
