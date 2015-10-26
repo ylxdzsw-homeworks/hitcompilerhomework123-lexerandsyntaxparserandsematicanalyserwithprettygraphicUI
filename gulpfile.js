@@ -39,8 +39,14 @@ gulp.task('clean', function(cb) {
     del(['build'], cb);
 });
 
+gulp.task('watch', ['build'], function() {
+    gulp.watch('src/styles/*.less', ['styles']);
+    gulp.watch('src/views/**/*.jade', ['views']);
+    gulp.watch('src/scripts/*.coffee', ['scripts']);
+});
+
 gulp.task('build', ['styles', 'views', 'scripts', 'lib']);
 
 gulp.task('default', ['clean'], function() {
-    gulp.start('build');
+    gulp.start('watch');
 });
