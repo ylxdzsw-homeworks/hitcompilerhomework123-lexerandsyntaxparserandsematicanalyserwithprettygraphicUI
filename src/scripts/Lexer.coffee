@@ -1,50 +1,47 @@
 Token           = (type, value) -> {type,value}
-NFAState        = (type, hasValue) -> {type,hasValue}
-DFAState        = (type, hasValue) -> {type,hasValue}
+FAState         = (type, value) -> {type,value}
 NFA             = (state, move) -> {state,move}
-DFA             = (state, move) -> {state,move}
+DFA             = (state, moveTable, moveHash) -> {state,moveTable,moveHash}
 
 inputs          = {}
 inputs.letter   = "abcdefghijklmnopqrstuvwxyz"
 inputs.letter  += inputs.letter.toUpperCase()
 inputs.number   = "0123456789"
 inputs.symbol   = "+-*/&|_<>=!,()[]{}."
-inputs.other    = "\n"
+inputs.other    = "\n\t "
 inputs.all      = inputs.letter + inputs.number + inputs.symbol + inputs.other
 
 NFAStates =
-	start: NFAState null
-	s1: NFAState "ID|KEY|BOOL", yes
-	s2: NFAState "EQ", no
-	s3: NFAState "LF", no
-	s4: NFAState "MLP", no
-	s5: NFAState "MRP", no
-	s6: NFAState "STRING", yes
-	s7: NFAState "CHAR", yes
-	s8: NFAState "INT", yes
-	s9: NFAState "FLOAT", yes
-	s10: NFAState "OP", yes
-	s11: NFAState "COMMENT", yes
-	s12: NFAState "SLP", no
-	s13: NFAState "SRP", no
-	s14: NFAState "COMMA", no
-	s15: NFAState "LLP", no
-	s16: NFAState "LRP", no
-	n1: NFAState null
-	n2: NFAState null
-	n3: NFAState null
-	n4: NFAState null
-	n5: NFAState null
-	n6: NFAState null
-	n7: NFAState null
-	n8: NFAState null
-	n9: NFAState null
-	n10: NFAState null
-	n11: NFAState null
-	n12: NFAState null
-	n13: NFAState null
-
-DFAStates = {}
+	start: FAState null
+	s1: FAState "ID|KEY|BOOL", yes
+	s2: FAState "EQ", no
+	s3: FAState "LF", no
+	s4: FAState "MLP", no
+	s5: FAState "MRP", no
+	s6: FAState "STRING", yes
+	s7: FAState "CHAR", yes
+	s8: FAState "INT", yes
+	s9: FAState "FLOAT", yes
+	s10: FAState "OP", yes
+	s11: FAState "COMMENT", yes
+	s12: FAState "SLP", no
+	s13: FAState "SRP", no
+	s14: FAState "COMMA", no
+	s15: FAState "LLP", no
+	s16: FAState "LRP", no
+	n1: FAState null
+	n2: FAState null
+	n3: FAState null
+	n4: FAState null
+	n5: FAState null
+	n6: FAState null
+	n7: FAState null
+	n8: FAState null
+	n9: FAState null
+	n10: FAState null
+	n11: FAState null
+	n12: FAState null
+	n13: FAState null
 
 NFAMoves = [
 	{tail: "start" , head: "s1"  , input: '_'+inputs.letter},
@@ -90,6 +87,9 @@ NFAMoves = [
 	{tail: "start" , head: "s14" , input: ","},
 	{tail: "start" , head: "s15" , input: "{"},
 	{tail: "start" , head: "s16" , input: "}"},
+	# special hack
+	{tail: "start" , head: "start", input: " \t"},
+	# error handling
 ]
 
 NFAtoDFA = (NFA) ->
@@ -103,6 +103,8 @@ NFAtoDFA = (NFA) ->
 		_(epsilonClosure.sort()).uniq(true).join('-')
 	Dstates = [calcEpsilonClosureT('start')]
 	Dmove = []
+	DFAMoveHash = {}
+	DFAStates = []
 	unFind = [0]
 	while unFind.length
 		T = Dstates[unFind.pop()]
@@ -116,6 +118,10 @@ NFAtoDFA = (NFA) ->
 				tail: T
 				head: U
 				input: i
+	# 建立DFAMoveHash方便后续使用
+	for i in Dmove
+		DFAMoveHash[i.tail] ?= {}
+		DFAMoveHash[i.tail][i.input] = i.head
 	# 合并input简化Dmove
 	Dmove = for k,v of _(Dmove).groupBy((x) -> return "#{x.tail}+#{x.head}")
 		tail: v[0].tail
@@ -126,12 +132,41 @@ NFAtoDFA = (NFA) ->
 		x = (NFAStates[j] for j in i.split('-') when NFAStates[j].type?)
 		switch x.length
 		 	when 0
-		 		DFAStates[i] = DFAState null
+		 		DFAStates[i] = FAState null
 		 	when 1
-		 		DFAStates[i] = DFAState x[0].type, x[0].hasValue
+		 		DFAStates[i] = FAState x[0].type, x[0].value
 		 	else
 		 		throw new Error "可能有多种结果，请检查词法" 
-	DFA(Dstates, Dmove)
+	DFA(DFAStates, Dmove, DFAMoveHash)
 
-console.log NFAtoDFA NFA NFAStates, NFAMoves
-console.log DFAStates
+DFA = NFAtoDFA NFA NFAStates, NFAMoves
+
+window.Lexer = (code) ->
+	code = code.split('')
+	panic = () ->
+	getNextToken: () ->
+		val = ""
+		state = 'start'
+		while i = code[0]
+			nextState = DFA.moveHash[state]?[i]
+			if nextState?
+				return DFA.moveHash[nextState].value if DFA.moveHash[nextState].type is 'ERROR'
+				val += code.shift()
+				state = nextState
+			else if type = DFA.state[state].type
+				return Token type, if DFA.state[state].value then val else null
+			else
+				if i in inputs.all
+					return "unexpected symbol '#{i}'"
+				else
+					return "unrecognized symbol '#{i}'"
+		if type = DFA.state[state].type
+			Token type, if DFA.state[state].value then val else null
+		else if state is 'start'
+			null
+		else
+			"early EOF"
+
+a = Lexer("fuck 123")
+while x = a.getNextToken()
+	console.log x
