@@ -1,7 +1,11 @@
-Token           = (type, value) -> {type,value}
 FAState         = (type, value) -> {type,value}
 NFA             = (state, move) -> {state,move}
 DFA             = (state, moveTable, moveHash) -> {state,moveTable,moveHash}
+
+class Token
+    constructor: (@type, value) ->
+        @value = value?.trim()
+    format: () -> "&lt;#{@type}, #{@value ? '_'}&gt;"
 
 inputs          = {}
 inputs.letter   = "abcdefghijklmnopqrstuvwxyz"
@@ -154,7 +158,7 @@ window.Lexer = (code) ->
                 val += code.shift()
                 state = nextState
             else if type = DFA.state[state].type
-                return Token type, if DFA.state[state].value then val else null
+                return new Token type, if DFA.state[state].value then val else null
             else
                 if i in inputs.all
                     code.shift() if state is 'start'
@@ -163,7 +167,7 @@ window.Lexer = (code) ->
                     code.shift()
                     return "unrecognized symbol '#{i}'"
         if type = DFA.state[state].type
-            Token type, if DFA.state[state].value then val else null
+            new Token type, if DFA.state[state].value then val else null
         else if state is 'start'
             null
         else
