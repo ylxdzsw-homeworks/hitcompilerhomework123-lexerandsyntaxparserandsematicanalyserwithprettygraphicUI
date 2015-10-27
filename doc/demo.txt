@@ -34,4 +34,6 @@ int main() {
             break
         }
     }
+
+    string unicode = "我可以吞下玻璃而不伤身体"
 }

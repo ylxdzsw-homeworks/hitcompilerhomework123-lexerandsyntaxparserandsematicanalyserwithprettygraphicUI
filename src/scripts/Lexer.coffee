@@ -3,17 +3,17 @@ NFA             = (state, move) -> {state,move}
 DFA             = (state, moveTable, moveHash) -> {state,moveTable,moveHash}
 
 class Token
-    constructor: (@type, value) ->
-        @value = value?.trim()
-    format: () -> "&lt;#{@type}, #{@value ? '_'}&gt;"
+    constructor: (@type, @value, @start, @end) ->
+    format: () -> "#{@start} &lt;#{@type}, #{@value ? '_'}&gt;"
 
 inputs          = {}
 inputs.letter   = "abcdefghijklmnopqrstuvwxyz"
 inputs.letter  += inputs.letter.toUpperCase()
 inputs.number   = "0123456789"
 inputs.symbol   = "+-*/&|_<>=!,()[]{}.'\""
-inputs.other    = "\n\t "
-inputs.all      = inputs.letter + inputs.number + inputs.symbol + inputs.other
+inputs.space    = "\n\t "
+inputs.wildcard = "#"
+inputs.all      = inputs.letter + inputs.number + inputs.symbol + inputs.space
 
 NFAStates =
     start: FAState null
@@ -55,7 +55,7 @@ NFAMoves = [
     {tail: "start" , head: "s4"  , input: "["},
     {tail: "start" , head: "s5"  , input: "]"},
     {tail: "start" , head: "n11" , input: "\""},
-    {tail: "n11"   , head: "n11" , input: _(inputs.all).without("\"","\n")},
+    {tail: "n11"   , head: "n11" , input: "#"},
     {tail: "n11"   , head: "s6"  , input: "\""},
     {tail: "start" , head: "n12" , input: "'"},
     {tail: "n12"   , head: "n13" , input: _(inputs.all).without("'","\n")},
@@ -82,9 +82,9 @@ NFAMoves = [
     {tail: "start" , head: "n8"  , input: "/"},
     {tail: "n8"    , head: "s10" , input: "ε"},
     {tail: "n8"    , head: "n9"  , input: "*"},
-    {tail: "n9"    , head: "n9"  , input: _(inputs.all).without("*")},
+    {tail: "n9"    , head: "n9"  , input: "#"},
     {tail: "n9"    , head: "n10" , input: "*"},
-    {tail: "n10"   , head: "n9"  , input: _(inputs.all).without("/")},
+    {tail: "n10"   , head: "n9"  , input: "#"},
     {tail: "n10"   , head: "s11" , input: "/"},
     {tail: "start" , head: "s12" , input: "("},
     {tail: "start" , head: "s13" , input: ")"},
@@ -92,7 +92,7 @@ NFAMoves = [
     {tail: "start" , head: "s15" , input: "{"},
     {tail: "start" , head: "s16" , input: "}"},
     # special hack //这个方法会导致token的value前面有空格，不行
-    {tail: "start" , head: "start", input: " \t"},
+    # {tail: "start" , head: "start", input: " \t"},
     # error handling
 ]
 
@@ -112,7 +112,7 @@ NFAtoDFA = (NFA) ->
     unFind = [0]
     while unFind.length
         T = Dstates[unFind.pop()]
-        for i in inputs.all
+        for i in inputs.all+'#'
             U = calcEpsilonClosureT _((x.head for x in NFA.move when x.tail in T.split('-') and i in x.input).sort()).uniq(true).join('-')
             continue if not U.length
             if U not in Dstates
@@ -147,28 +147,39 @@ DFA = NFAtoDFA NFA NFAStates, NFAMoves
 
 window.Lexer = (code) ->
     code = code.split('')
+    cursor = {line:1, column:0}
+    traceOne = () ->
+        if code.shift() is '\n'
+            cursor.line += 1;
+            cursor.column = 0;
+        else
+            cursor.column += 1;
+        null
+    getPos = () -> "#{cursor.line}:#{cursor.column}"
     panic = () ->
     getNextToken: () ->
         val = ""
         state = 'start'
+        position = getPos()
         while i = code[0]
-            nextState = DFA.moveHash[state]?[i]
+            nextState = DFA.moveHash[state]?[i] ? DFA.moveHash[state]?[inputs.wildcard]
             if nextState?
-                return DFA.state[nextState].value if DFA.state[nextState].type is 'ERROR'
-                val += code.shift()
+                return new Token 'ERROR', DFA.state[nextState].value, position, getPos() if DFA.state[nextState].type is 'ERROR'
+                val += i
+                traceOne()
                 state = nextState
             else if type = DFA.state[state].type
-                return new Token type, if DFA.state[state].value then val else null
+                return new Token type, (if DFA.state[state].value then val else null), position, getPos()
             else
-                if i in inputs.all
-                    code.shift() if state is 'start'
-                    return "unexpected symbol '#{i}'"
+                traceOne() if state is 'start'
+                if i in inputs.space
+                    position = getPos()
+                    continue
                 else
-                    code.shift()
-                    return "unrecognized symbol '#{i}'"
+                    return new Token 'ERROR', "unexpected symbol '#{i}'", position, getPos()
         if type = DFA.state[state].type
-            new Token type, if DFA.state[state].value then val else null
+            return new Token type, (if DFA.state[state].value then val else null), position, getPos()
         else if state is 'start'
             null
         else
-            "early EOF"
+            new Token 'ERROR', "Early EOF", position, getPos()
