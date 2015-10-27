@@ -19,7 +19,7 @@ inputs          = {}
 inputs.letter   = "abcdefghijklmnopqrstuvwxyz"
 inputs.letter  += inputs.letter.toUpperCase()
 inputs.number   = "0123456789"
-inputs.symbol   = "+-*/&|_<>=!,()[]{}.'\""
+inputs.symbol   = "+-*/&|%_<>=!,()[]{}.'\""
 inputs.space    = "\n\t \r"
 inputs.wildcard = "#"
 inputs.all      = inputs.letter + inputs.number + inputs.symbol + inputs.space
@@ -59,10 +59,11 @@ NFAStates =
     n12: FAState null
     n13: FAState null
     e1: FAState 'ERROR', "字符串字面量不能换行"
-    e2: FAState 'ERROR', "字符字面量不能超过一个字符", "'\n"
+    e2: FAState 'ERROR', "字符字面量不能超过一个字符", {type:'until', condition:"'\n"}
     e3: FAState 'ERROR', "字符字面量不能换行"
     e4: FAState 'ERROR', "数字字面量未写完整"
-    e5: FAState 'ERROR', "标识符不能以数字开头"
+    e5: FAState 'ERROR', "标识符不能以数字开头", {type:'while', condition:'_'+inputs.letter+inputs.number}
+    e6: FAState 'ERROR', "数字字面量错误-重复的'.'", {type:'while', condition:"."+inputs.number}
 
 NFAMoves = [
     {tail: "start" , head: "s1"  , input: '_'+inputs.letter},
@@ -95,7 +96,7 @@ NFAMoves = [
     {tail: "start" , head: "n7"  , input: "!<>"},
     {tail: "n7"    , head: "s10" , input: "=ε"},
     {tail: "s2"    , head: "s10" , input: "="},
-    {tail: "start" , head: "s10" , input: "+-*&|"},
+    {tail: "start" , head: "s10" , input: "+-*&|%"},
     {tail: "start" , head: "n8"  , input: "/"},
     {tail: "n8"    , head: "s10" , input: "ε"},
     {tail: "n8"    , head: "n9"  , input: "*"},
@@ -122,6 +123,8 @@ NFAMoves = [
     {tail: "s8"    , head: "e5"  , input: '_'+inputs.letter},
     {tail: "n4"    , head: "e5"  , input: '_'+inputs.letter},
     {tail: "s9"    , head: "e5"  , input: '_'+inputs.letter},
+    {tail: "n3"    , head: "e6"  , input: "."},
+    {tail: "n4"    , head: "e6"  , input: "."},
 ]
 
 NFAtoDFA = (NFA) ->
@@ -184,13 +187,15 @@ window.Lexer = (code) ->
             cursor.column += 1;
         null
     getPos = () -> "#{cursor.line}:#{cursor.column}"
-    panic: (condition) ->
-        console.log condition
-        if _.isNumber condition
-            traceOne() while condition--
-        else
-            traceOne() until code[0] in condition or code.length is 0
-            traceOne()
+    panic: ({type, condition}) ->
+        switch type
+            when 'number'
+                traceOne() while condition--
+            when 'while'
+                traceOne() while code[0] in condition
+            when 'until'
+                traceOne() until code[0] in condition or code.length is 0
+                traceOne()
     getNextToken: () ->
         val = ""
         state = 'start'

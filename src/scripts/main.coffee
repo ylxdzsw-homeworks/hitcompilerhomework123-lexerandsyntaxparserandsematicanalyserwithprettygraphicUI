@@ -1,5 +1,5 @@
 # 设置prettyprint
-PR['registerLangHandler'](PR['createSimpleLexer']([],[]),['empty'])
+# PR['registerLangHandler'](PR['createSimpleLexer']([],[]),['empty'])
 
 window.start = (code) ->
     lexer = Lexer code
@@ -12,7 +12,7 @@ window.start = (code) ->
     $("#output>pre").html output
 
 format = (code, tokens) ->
-    code = code.split ''
+    code = code.split('')
     input = ""
     output = ""
     errornum = 0
