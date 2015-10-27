@@ -1,0 +1,9 @@
+int main() {
+    202.
+    22e
+    ..
+    "dsdsdsd
+    'dd'
+
+    /*
+}

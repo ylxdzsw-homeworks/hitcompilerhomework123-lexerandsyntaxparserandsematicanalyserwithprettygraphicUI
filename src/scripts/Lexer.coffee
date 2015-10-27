@@ -1,9 +1,9 @@
-FAState         = (type, value) -> {type,value}
+FAState         = (type, value, panic) -> {type,value,panic}
 NFA             = (state, move) -> {state,move}
 DFA             = (state, moveTable, moveHash) -> {state,moveTable,moveHash}
 
 class Token
-    constructor: (@type, @value, @start, @end) ->
+    constructor: (@type, @value, @start, @end, @panic) ->
         # special process for id key and bool
         if @type is 'ID|KEY|BOOL'
             if @value in keywords
@@ -20,7 +20,7 @@ inputs.letter   = "abcdefghijklmnopqrstuvwxyz"
 inputs.letter  += inputs.letter.toUpperCase()
 inputs.number   = "0123456789"
 inputs.symbol   = "+-*/&|_<>=!,()[]{}.'\""
-inputs.space    = "\n\t "
+inputs.space    = "\n\t \r"
 inputs.wildcard = "#"
 inputs.all      = inputs.letter + inputs.number + inputs.symbol + inputs.space
 
@@ -58,6 +58,11 @@ NFAStates =
     n11: FAState null
     n12: FAState null
     n13: FAState null
+    e1: FAState 'ERROR', "字符串字面量不能换行"
+    e2: FAState 'ERROR', "字符字面量不能超过一个字符", "'\n"
+    e3: FAState 'ERROR', "字符字面量不能换行"
+    e4: FAState 'ERROR', "数字字面量未写完整"
+    e5: FAState 'ERROR', "标识符不能以数字开头"
 
 NFAMoves = [
     {tail: "start" , head: "s1"  , input: '_'+inputs.letter},
@@ -70,7 +75,7 @@ NFAMoves = [
     {tail: "n11"   , head: "n11" , input: "#"},
     {tail: "n11"   , head: "s6"  , input: "\""},
     {tail: "start" , head: "n12" , input: "'"},
-    {tail: "n12"   , head: "n13" , input: _(inputs.all).without("'","\n")},
+    {tail: "n12"   , head: "n13" , input: "#"},
     {tail: "n13"   , head: "s7"  , input: "'"},
     {tail: "start" , head: "n1"  , input: inputs.number},
     {tail: "n1"    , head: "n1"  , input: inputs.number},
@@ -106,6 +111,17 @@ NFAMoves = [
     # special hack //这个方法会导致token的value前面有空格，不行
     # {tail: "start" , head: "start", input: " \t"},
     # error handling
+    {tail: "n11"   , head: "e1"  , input: "\n"},
+    {tail: "n13"   , head: "e2"  , input: "#"},
+    {tail: "n12"   , head: "e3"  , input: "\n"},
+    {tail: "n2"    , head: "e4"  , input: "#"},
+    {tail: "n3"    , head: "e4"  , input: "#"},
+    {tail: "n5"    , head: "e4"  , input: "#"},
+    {tail: "n6"    , head: "e4"  , input: "#"},
+    {tail: "n1"    , head: "e5"  , input: '_'+inputs.letter},
+    {tail: "s8"    , head: "e5"  , input: '_'+inputs.letter},
+    {tail: "n4"    , head: "e5"  , input: '_'+inputs.letter},
+    {tail: "s9"    , head: "e5"  , input: '_'+inputs.letter},
 ]
 
 NFAtoDFA = (NFA) ->
@@ -150,7 +166,7 @@ NFAtoDFA = (NFA) ->
             when 0
                 DFAStates[i] = FAState null
             when 1
-                DFAStates[i] = FAState x[0].type, x[0].value
+                DFAStates[i] = FAState x[0].type, x[0].value, x[0].panic
             else
                 throw new Error "可能有多种结果，请检查词法"
     DFA(DFAStates, Dmove, DFAMoveHash)
@@ -168,7 +184,13 @@ window.Lexer = (code) ->
             cursor.column += 1;
         null
     getPos = () -> "#{cursor.line}:#{cursor.column}"
-    panic = () ->
+    panic: (condition) ->
+        console.log condition
+        if _.isNumber condition
+            traceOne() while condition--
+        else
+            traceOne() until code[0] in condition or code.length is 0
+            traceOne()
     getNextToken: () ->
         val = ""
         state = 'start'
@@ -176,19 +198,19 @@ window.Lexer = (code) ->
         while i = code[0]
             nextState = DFA.moveHash[state]?[i] ? DFA.moveHash[state]?[inputs.wildcard]
             if nextState?
-                return new Token 'ERROR', DFA.state[nextState].value, position, getPos() if DFA.state[nextState].type is 'ERROR'
+                return new Token 'ERROR', DFA.state[nextState].value, position, getPos(), DFA.state[nextState].panic if DFA.state[nextState].type is 'ERROR'
                 val += i
                 traceOne()
                 state = nextState
             else if type = DFA.state[state].type
                 return new Token type, (if DFA.state[state].value then val else null), position, getPos()
             else
-                traceOne() if state is 'start'
-                if i in inputs.space
-                    position = getPos()
-                    continue
-                else
-                    return new Token 'ERROR', "unexpected symbol '#{i}'", position, getPos()
+                if state is 'start'
+                    traceOne()
+                    if i in inputs.space
+                        position = getPos()
+                        continue
+                return new Token 'ERROR', "unexpected symbol '#{i}'", position, getPos()
         if type = DFA.state[state].type
             return new Token type, (if DFA.state[state].value then val else null), position, getPos()
         else if state is 'start'

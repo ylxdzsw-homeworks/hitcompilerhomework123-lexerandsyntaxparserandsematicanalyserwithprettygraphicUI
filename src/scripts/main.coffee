@@ -2,9 +2,10 @@
 PR['registerLangHandler'](PR['createSimpleLexer']([],[]),['empty'])
 
 window.start = (code) ->
-    a = Lexer code
+    lexer = Lexer code
     tokens = []
-    while x = a.getNextToken()
+    while x = lexer.getNextToken()
+        lexer.panic x.panic if x.panic?
         tokens.push x
     {input, output} = format code, tokens
     $("#input>pre").html input
@@ -35,7 +36,7 @@ format = (code, tokens) ->
         if token.type is "ERROR"
             errornum += 1
             input += """#{readUntil(token.start)}<span class="map-#{i}" onmouseover="activate(#{i})" onmouseleave="deactivate(#{i})">#{readUntil(token.end)}</span>"""
-            output += """<span class="map-#{i}" class="errormsg" onmouseover="activate(#{i})" onmouseleave="deactivate(#{i})">#{token.start} #{token.value}</span>\n"""
+            output += """<span class="map-#{i} errormsg" onmouseover="activate(#{i})" onmouseleave="deactivate(#{i})">#{token.start} #{token.value}</span>\n"""
         else
             tokennum += 1
             input += """#{readUntil(token.start)}<span class="map-#{i}" onmouseover="activate(#{i})" onmouseleave="deactivate(#{i})">#{readUntil(token.end)}</span>"""
