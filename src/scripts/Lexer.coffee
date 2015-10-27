@@ -4,6 +4,15 @@ DFA             = (state, moveTable, moveHash) -> {state,moveTable,moveHash}
 
 class Token
     constructor: (@type, @value, @start, @end) ->
+        # special process for id key and bool
+        if @type is 'ID|KEY|BOOL'
+            if @value in keywords
+                @type = @value.toUpperCase()
+                @value = '_'
+            else if @value in ['true','false']
+                @type = 'BOOL'
+            else
+                @type = 'ID'
     format: () -> "#{@start} &lt;#{@type}, #{@value ? '_'}&gt;"
 
 inputs          = {}
@@ -15,6 +24,9 @@ inputs.space    = "\n\t "
 inputs.wildcard = "#"
 inputs.all      = inputs.letter + inputs.number + inputs.symbol + inputs.space
 
+keywords = ['int','float','bool','string','char','record'
+            'if','else','do','while']
+
 NFAStates =
     start: FAState null
     s1: FAState "ID|KEY|BOOL", yes
@@ -22,10 +34,10 @@ NFAStates =
     s3: FAState "LF", no
     s4: FAState "MLP", no
     s5: FAState "MRP", no
-    s6: FAState "STRING", yes
-    s7: FAState "CHAR", yes
-    s8: FAState "INT", yes
-    s9: FAState "FLOAT", yes
+    s6: FAState "STRINGC", yes
+    s7: FAState "CHARC", yes
+    s8: FAState "INTC", yes
+    s9: FAState "FLOATC", yes
     s10: FAState "OP", yes
     s11: FAState "COMMENT", yes
     s12: FAState "SLP", no
