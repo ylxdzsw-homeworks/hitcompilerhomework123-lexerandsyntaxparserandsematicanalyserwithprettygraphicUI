@@ -1,0 +1,9 @@
+#output {
+  float: left;
+  height: 650px;
+  width: 50%;
+}
+#output ol.linenums {
+  padding-left: 5px;
+  list-style-type: none;
+}

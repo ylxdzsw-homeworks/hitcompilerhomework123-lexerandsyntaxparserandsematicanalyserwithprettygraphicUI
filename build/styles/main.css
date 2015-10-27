@@ -1,0 +1,35 @@
+body {
+  background-color: azure;
+  margin: 0 0 0 0;
+}
+.clear {
+  clear: both;
+}
+.hidden {
+  display: none !important;
+}
+pre.prettyprint {
+  background-color: #333;
+  color: #eee;
+  font-family: "Consolas" monospace;
+  font-size: 16px;
+  height: 100%;
+  width: 100%;
+  overflow: scroll;
+  margin: 0 0 0 0;
+}
+pre.prettyprint ol.linenums {
+  padding-left: 60px;
+  margin: 4px;
+  list-style-type: decimal;
+}
+pre.prettyprint span.compileinfo {
+  color: lime;
+}
+pre.prettyprint span.errormsg {
+  color: red;
+}
+pre.prettyprint span.active {
+  background-color: yellow;
+  color: black;
+}
