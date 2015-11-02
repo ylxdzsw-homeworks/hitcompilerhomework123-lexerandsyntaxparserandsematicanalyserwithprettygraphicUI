@@ -139,7 +139,7 @@ NFAtoDFA = (NFA) ->
     Dstates = [calcEpsilonClosureT('start')]
     Dmove = []
     DFAMoveHash = {}
-    DFAStates = []
+    DFAStates = {}
     unFind = [0]
     while unFind.length
         T = Dstates[unFind.pop()]
