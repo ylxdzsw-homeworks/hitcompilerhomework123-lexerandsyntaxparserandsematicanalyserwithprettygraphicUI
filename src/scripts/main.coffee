@@ -11,7 +11,7 @@ window.start = (code) ->
     {input, output} = format code, tokens
     $("#input>pre").html input
     $("#output>pre").html output
-    window.Syntax.analyze tokens
+    console.log formatTree window.Syntax.analyze tokens
 
 format = (code, tokens) ->
     code = code.split('')
@@ -46,6 +46,16 @@ format = (code, tokens) ->
     output = """<span class="compileinfo">词法分析结束，共#{tokennum}个词法单元，#{errornum}处错误\n</span>""" + output
     {input,output}
 
+formatTree = (nodes) ->
+    output = ""
+    for node in nodes
+        output += ('  ' for i in [0...node.level]).join('')
+        switch node.type
+            when 'terminal'
+                output += "#{node.token.type}#{if node.token.value then ':' + node.token.value else ''}\n"
+            when 'nonterminal'
+                output += "#{node.path}\n"
+    output
 window.activate = (id) ->
     $(".map-#{id}").addClass 'active'
 

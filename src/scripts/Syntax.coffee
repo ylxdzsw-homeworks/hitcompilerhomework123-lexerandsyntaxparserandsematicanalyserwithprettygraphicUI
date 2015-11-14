@@ -158,34 +158,42 @@ gen_table = ->
 
 analyze = (tokens) ->
     ip = tokens.shift()
-    stack = ['$', 'Program']
-    X = 'Program'
+    stack = [{type:'$',level:-1}, {type:'Program',level:0}]
+    X = stack[stack.length-1]
+    result = []
     table = do gen_table
     console.log table
-    while X isnt '$'
-        console.log X
-        if X is ip.type
+    while X.type isnt '$'
+        if X.type is ip.type
+            result.push
+                type: 'terminal'
+                token: ip
+                level: X.level
             ip = tokens.shift()
             stack.pop()
-        else if X is 'ε'
-            console.warn "fucking ε"
+        else if X.type is 'ε'
             stack.pop()
-        else if isTerminal X
-            console.error "unexpected #{X}"
-        else if table[X][ip.type]
-                console.log table[X][ip.type]
-                stack.pop()
-                queue = (i for i in table[X][ip.type].right)
-                stack.push queue.pop() while queue.length
+        else if isTerminal X.type
+            console.error "unexpected #{X.type}"
+            stack.pop()
+        else if table[X.type][ip.type]
+            rule = table[X.type][ip.type]
+            result.push
+                type: 'nonterminal'
+                path: "#{rule.left} -> #{rule.right.join(' ')}"
+                level: X.level
+            stack.pop()
+            queue = (i for i in rule.right)
+            stack.push {type:queue.pop(), level:X.level+1} while queue.length
         else if ip.type is 'LF'
             ip = tokens.shift()
-        else if isNullable X
+        else if isNullable X.type
             stack.pop()
         else
-            console.error "unexpected #{ip.type}, nedding #{X}"
-            break
+            console.error "unexpected #{ip.type}, nedding #{X.type}"
+            stack.pop()
         X = stack[stack.length-1]
-        console.log ip.start
+    result
 
 isTerminal = (x) ->
     x is x.toUpperCase() and x isnt 'ε'

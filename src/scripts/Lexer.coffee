@@ -8,7 +8,7 @@ class Token
         if @type is 'ID|KEY|BOOL'
             if @value in keywords
                 @type = @value.toUpperCase()
-                @value = '_'
+                @value = null
             else if @value in ['true','false']
                 @type = 'BOOL'
             else
