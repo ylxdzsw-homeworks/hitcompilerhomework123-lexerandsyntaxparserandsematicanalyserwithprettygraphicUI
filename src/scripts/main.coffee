@@ -7,9 +7,11 @@ window.start = (code) ->
     while x = lexer.getNextToken()
         lexer.panic x.panic if x.panic?
         tokens.push x
+        break if x.type is '$'
     {input, output} = format code, tokens
     $("#input>pre").html input
     $("#output>pre").html output
+    window.Syntax.analyze tokens
 
 format = (code, tokens) ->
     code = code.split('')

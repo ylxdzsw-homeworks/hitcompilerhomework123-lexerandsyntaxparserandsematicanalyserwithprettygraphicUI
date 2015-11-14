@@ -1,39 +1,24 @@
+point {
+    int x
+    int y
+}
+
 int main() {
-    int a = 200
-    int b = 2e5
-    float c = 200.2
-    float d = 123e3
-    float e = 123.45e1
-    bool f = true
-    string g = "Hello World!"
-    char h = 'h'
-    char i = g[1]
-
-    bool j = 1 < 2
-    bool k = 3 >= 5.0
-    bool l = 8 == 2
-    bool m = 'e' != 'e'
-    bool n = l & m
-    int o = 2 * 3
-    int p = a + b
-    record q = {}
-
-    /* this is a comment */
-
-    /*
-     * this is another
-     * comment @#$%^&*
-     */
-
-    foo(0, 1)
-
-    while (x < 3) {
-        x = x + 3
-
-        if (y < 3) {
-            break
-        }
+    int x[2]
+    int y
+    int i
+    i = 0
+    while(i < 2){
+        x[i] = 1
+        x = x + 1
     }
+    y = add(x[0], x[1])
+    if(y != 0){
+        print(y)
+    }else{
+    }
+}
 
-    string unicode = "我可以吞下玻璃而不伤身体"
+int add(int a, int b) {
+    return a + b
 }

@@ -13,6 +13,20 @@ class Token
                 @type = 'BOOL'
             else
                 @type = 'ID'
+        # special process for OP
+        # else if @type is 'OP'
+        #     @type = switch
+        #         when @value in "&|"
+        #             'OP1'
+        #         when @value in ['>','<','==','!=','>=','<=']
+        #             'OP2'
+        #         when @value in "+-"
+        #             'OP3'
+        #         when @value in "*/%"
+        #             'OP4'
+        #         else
+        #             'OP5'
+
     format: () -> "#{@start} &lt;#{@type}, #{@value ? '_'}&gt;"
 
 inputs          = {}
@@ -25,7 +39,7 @@ inputs.wildcard = "#"
 inputs.all      = inputs.letter + inputs.number + inputs.symbol + inputs.space
 
 keywords = ['int','float','bool','string','char','record'
-            'if','else','do','while']
+            'if','else','while','call','return']
 
 NFAStates =
     start: FAState null
@@ -219,6 +233,6 @@ window.Lexer = (code) ->
         if type = DFA.state[state].type
             return new Token type, (if DFA.state[state].value then val else null), position, getPos()
         else if state is 'start'
-            null
+            new Token '$', null, position, getPos()
         else
             new Token 'ERROR', "Early EOF", position, getPos()

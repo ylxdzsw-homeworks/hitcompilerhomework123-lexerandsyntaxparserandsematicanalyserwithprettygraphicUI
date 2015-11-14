@@ -1,0 +1,30 @@
+digraph parser {
+    node [fontsize=20 fontname="Microsoft YaHei"]
+    edge [fontsize=20 fontname=Consolas]
+
+    parser [label="语法分析器"]
+    s0    [label="分析器内核"]
+    s1    [label="图形界面"]
+    s2    [label="Token流读取"]
+    s3    [label="语法树序列化输出"]
+    s4    [label="文法数据结构"]
+    s5    [label="提取公共前缀算法"]
+    s6    [label="自动消除左递归算法"]
+    s7    [label="First，Follow集计算"]
+    s8    [label="语法树生成"]
+    s9    [label="文法处理模块"]
+
+    parser -> s0
+    parser -> s1
+
+    s0 -> s9
+    s0 -> s2
+    s0 -> s8
+
+    s1 -> s3
+
+    s9 -> s4
+    s9 -> s5
+    s9 -> s6
+    s9 -> s7
+}

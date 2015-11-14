@@ -1,0 +1,60 @@
+Program -> ε
+Program -> Declaration Program
+Declaration -> FunctionDef
+Declaration -> RecordDef
+
+FunctionDef -> Type ID SLP ArgList SRP LLP Statements LRP
+
+RecordDef -> ID LLP Statements LRP
+
+ArgList -> ε
+ArgList -> VarDef ArgList_tail
+ArgList_tail -> ε
+ArgList_tail -> COMMA VarDef ArgList_tail
+
+Variable -> ID IndexList
+IndexList -> ε
+IndexList -> Index IndexList
+Index -> MLP Expression MRP
+
+VarDef -> Type Variable
+
+Statements -> ε
+Statements -> Statement Statements
+
+Statement -> LLP Statements LRP
+Statement -> VarDef LF
+Statement -> Variable Statement_assignorcall
+Statement -> WHILE SLP Expression SRP Statement
+Statement -> IF SLP Expression SRP Statement Statement_else
+Statement -> RETURN Expression
+Statement_else -> ε
+Statement_else -> ELSE Statement
+Statement_assignorcall -> EQ Expression LF
+Statement_assignorcall -> SLP VarList SRP LF
+
+VarList -> ε
+VarList -> Variable VarList_tail
+VarList_tail -> ε
+VarList_tail -> COMMA Variable VarList_tail
+
+Expression -> Expression_atom Expression_tail
+Expression_tail -> ε
+Expression_tail -> OP Expression_atom Expression_tail
+Expression_atom -> SLP Expression SRP
+Expression_atom -> Variable Expression_atom_call
+Expression_atom -> Const
+Expression_atom_call -> ε
+Expression_atom_call -> SLP VarList SRP
+
+Const -> INTC
+Const -> FLOATC
+Const -> STRINGC
+Const -> CHARC
+
+Type -> INT
+Type -> FLOAT
+Type -> BOOL
+Type -> STRING
+Type -> CHAR
+Type -> RECORD ID
