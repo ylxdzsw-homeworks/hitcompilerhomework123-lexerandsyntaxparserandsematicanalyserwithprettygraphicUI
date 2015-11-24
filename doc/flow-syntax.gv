@@ -1,0 +1,24 @@
+digraph flow {
+    node [fontsize=20 fontname="Microsoft YaHei"]
+    edge [fontsize=20 fontname="Microsoft YaHei"]
+
+    s0 [label="读取文法描述"]
+    s1 [label="计算First集"]
+    s2 [label="计算Follow集"]
+    s3 [label="计算Select集"]
+    s4 [label="生成预测分析表"]
+    s5 [label="初始化自动机"]
+    s6 [label="读取下一个Token"]
+    s7 [label="推动自动机"]
+    s8 [label="序列化AST输出"]
+
+    s0 -> s1
+    s1 -> s2
+    s2 -> s3
+    s3 -> s4
+    s4 -> s5
+    s5 -> s6
+    s6 -> s7 [label="读取到Token"]
+    s7 -> s6
+    s6 -> s8 [label="读取到EOF"]
+}

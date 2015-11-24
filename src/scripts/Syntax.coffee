@@ -154,6 +154,7 @@ gen_table = ->
         table[rule.left] = {} if not table[rule.left]
         for i in rule.select
             table[rule.left][i] = rule
+    console.log JSON.stringify rules, null, 4
     table
 
 analyze = (tokens) ->
@@ -174,7 +175,10 @@ analyze = (tokens) ->
         else if X.type is 'ε'
             stack.pop()
         else if isTerminal X.type
-            console.error "unexpected #{X.type}"
+            result.push
+                type:'error'
+                content: "unexpected #{X.type}"
+                level: X.level
             stack.pop()
         else if table[X.type][ip.type]
             rule = table[X.type][ip.type]
@@ -190,7 +194,10 @@ analyze = (tokens) ->
         else if isNullable X.type
             stack.pop()
         else
-            console.error "unexpected #{ip.type}, nedding #{X.type}"
+            result.push
+                type:'error'
+                content: "unexpected #{ip.type}, nedding #{X.type}"
+                level: X.level
             stack.pop()
         X = stack[stack.length-1]
     result
