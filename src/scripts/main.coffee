@@ -11,7 +11,8 @@ window.start = (code) ->
     {input, output} = format code, tokens
     $("#input>pre").html input
     $("#output>pre").html output
-    $("#syntax>pre").html formatTree window.Syntax.analyze tokens
+    window.nodes = window.Syntax.analyze tokens
+    $("#syntax>pre").html formatTree window.nodes
 
 format = (code, tokens) ->
     code = code.split('')
@@ -55,7 +56,7 @@ formatTree = (nodes) ->
             when 'terminal'
                 output += """<span class="map-#{node.token.id}" onmouseover="activate(#{node.token.id})" onmouseleave="deactivate(#{node.token.id})">#{node.token.type}#{if node.token.value then ':' + node.token.value else ''}</span>\n"""
             when 'nonterminal'
-                output += """#{node.path}\n"""
+                output += """#{node.rule.left} -> #{node.rule.right.join(' ')}\n"""
             when 'error'
                 output += """<span class="error">#{node.content}</span>\n"""
     output

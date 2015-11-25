@@ -154,7 +154,6 @@ gen_table = ->
         table[rule.left] = {} if not table[rule.left]
         for i in rule.select
             table[rule.left][i] = rule
-    console.log JSON.stringify rules, null, 4
     table
 
 analyze = (tokens) ->
@@ -184,7 +183,7 @@ analyze = (tokens) ->
             rule = table[X.type][ip.type]
             result.push
                 type: 'nonterminal'
-                path: "#{rule.left} -> #{rule.right.join(' ')}"
+                rule: rule
                 level: X.level
             stack.pop()
             queue = (i for i in rule.right)
@@ -196,7 +195,7 @@ analyze = (tokens) ->
         else
             result.push
                 type:'error'
-                content: "unexpected #{ip.type}, nedding #{X.type}"
+                content: "unexpected #{ip.type}, needing #{X.type}"
                 level: X.level
             stack.pop()
         X = stack[stack.length-1]
