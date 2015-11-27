@@ -15,10 +15,10 @@ class Scope
             name: symbol
             type: type
         @pos += getTypeLength type
-    allSymbols: -> Array.from @symbolTable.values
-    forEach: -> @symbolTable.forEach.apply @, arguments
-    typeDef: -> @typeDefs.set.apply @, arguments
-    getType: -> @typeDefs.get.apply @, arguments
+    allSymbols: -> Array.from @symbolTable.values()
+    forEach: -> @symbolTable.forEach.apply @symbolTable, arguments
+    typeDef: -> @typeDefs.set.apply @typeDefs, arguments
+    getType: -> @typeDefs.get.apply @typeDefs, arguments
 
 class Target
     constructor: ->
@@ -148,7 +148,7 @@ class STVarDef_1 extends STVarDef
     constructor: (@Type, @ID) ->
     analyze: (scope) ->
         @Type.analyze scope
-        scope.add @ID, @Type.value
+        scope.add @ID.value, @Type.value
 
 class STStatements_1 extends STStatements
     constructor: ->
@@ -327,7 +327,7 @@ class STType_6 extends STType
 
 class STType_tail_1 extends STType_tail
     constructor: ->
-    analyze: ->
+    analyze: -> @value = []
 
 class STType_tail_2 extends STType_tail
     constructor: (@MLP, @INTC, @MRP, @Type_tail)->
@@ -390,20 +390,21 @@ classMap = [ # rule id -> class
 ]
 
 buildTree = (nodes) ->
-    build = (i) ->
-        node = nodes[i]
+    nodes = nodes[...]
+    buildOne = ->
+        node = do nodes.shift
+        return if not node
         switch node.type
             when 'terminal'
                 node.token
             when 'nonterminal'
                 nodeType = classMap[node.rule.id]
-                new nodeType [i+1...i+node.rule.right.length+1].map(build)...
+                new nodeType node.rule.right.filter(isNotIpsilon).map(buildOne)...
             when 'error'
                 throw new SyntaxError 'abort compilng due to syntax errors'
-    build 0
+    do buildOne
 
 analyze = (root) ->
-    console.log 'come here'
     global = new Scope
     root.analyze global
     console.log global
@@ -430,11 +431,13 @@ getTypeLength = (type, scope) ->
 
 window.Semantic = {
     buildTree,
-    analyze,
-    Scope
+    analyze
 }
 
 
 # helpers
 extract = (field) ->
     (obj) -> obj[field]
+
+isNotIpsilon = (x) ->
+    x isnt 'ε'

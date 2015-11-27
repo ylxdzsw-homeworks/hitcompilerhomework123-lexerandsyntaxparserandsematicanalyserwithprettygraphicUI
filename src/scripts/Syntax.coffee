@@ -164,7 +164,6 @@ analyze = (tokens) ->
     X = stack[stack.length-1]
     result = []
     table = do gen_table
-    console.log table
     while X.type isnt '$'
         if X.type is ip.type
             result.push
@@ -193,6 +192,10 @@ analyze = (tokens) ->
         else if ip.type is 'LF'
             ip = tokens.shift()
         else if isNullable X.type
+            result.push
+                type: 'nonterminal'
+                rule: _.find rules, (x) -> x.left is X.type and 'ε' in x.right
+                level: X.level
             stack.pop()
         else
             result.push
