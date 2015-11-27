@@ -1,10 +1,9 @@
 rules = symbols = null
 do ->
     grammer = """
-        Program -> Declaration Program
         Program -> ε
-        Declaration -> FunctionDef
-        Declaration -> RecordDef
+        Program -> FunctionDef Program
+        Program -> RecordDef Program
         FunctionDef -> Type ID SLP ArgList SRP LLP Statements LRP
         RecordDef -> ID LLP Statements LRP
         ArgList -> ε

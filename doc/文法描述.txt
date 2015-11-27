@@ -1,7 +1,6 @@
 Program -> ε
-Program -> Declaration Program
-Declaration -> FunctionDef
-Declaration -> RecordDef
+Program -> FunctionDef Program
+Program -> RecordDef Program
 
 FunctionDef -> Type ID SLP ArgList SRP LLP Statements LRP
 
