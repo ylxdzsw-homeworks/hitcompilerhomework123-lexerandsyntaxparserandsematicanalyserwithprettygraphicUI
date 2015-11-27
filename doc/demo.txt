@@ -4,7 +4,7 @@ point {
 }
 
 int main() {
-    int x[2]
+    int[2] x
     int y
     int i
     i = 0

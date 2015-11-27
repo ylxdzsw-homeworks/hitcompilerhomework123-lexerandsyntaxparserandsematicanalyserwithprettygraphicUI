@@ -17,7 +17,7 @@ IndexList -> ε
 IndexList -> Index IndexList
 Index -> MLP Expression MRP
 
-VarDef -> Type Variable
+VarDef -> Type ID
 
 Statements -> ε
 Statements -> Statement Statements
@@ -52,9 +52,11 @@ Const -> FLOATC
 Const -> STRINGC
 Const -> CHARC
 
-Type -> INT
-Type -> FLOAT
-Type -> BOOL
-Type -> STRING
-Type -> CHAR
-Type -> RECORD ID
+Type -> INT Type_tail
+Type -> FLOAT Type_tail
+Type -> BOOL Type_tail
+Type -> STRING Type_tail
+Type -> CHAR Type_tail
+Type -> RECORD ID Type_tail
+Type_tail -> ε
+Type_tail -> MLP INTC MRP Type_tail
