@@ -9,14 +9,14 @@ class Scope
             @find(symbol)?
         else
             @symbolTable.has(symbol)
-    add: (symbol, type) ->
+    add: (symbol, type, pos) ->
         @symbolTable.set symbol,
-            pos: @pos
+            pos: pos ? @pos
             name: symbol
             type: type
-        @pos += getTypeLength type
+        @pos += getTypeLength type, @ if not pos?
     allSymbols: -> Array.from @symbolTable.values()
-    getLength: -> @allSymbols().map(extract('type')).map(getTypeLength).reduce (x, y) -> x + y
+    getLength: -> @allSymbols().map(extract('type')).map((x)=>getTypeLength(x,@)).reduce (x, y) -> x + y
     forEach: -> @symbolTable.forEach.apply @symbolTable, arguments
     typeDef: -> @typeDefs.set.apply @typeDefs, arguments
     getType: -> @typeDefs.get.apply @typeDefs, arguments
@@ -57,35 +57,36 @@ class STType extends STNode
 class STType_tail extends STNode
 
 class STProgram_1 extends STProgram
-    constructor: (@Declaration, @Program) ->
-    analyze: (scope) ->
-        @Declaration.analyze scope
-        @Program.analyze scope
-    codegen: (scope, target) ->
-        @Declaration.codegen scope, target
-        @Program.codegen scope, target
+    constructor: ->
+    analyze: ->
+    codegen: ->
 
 class STProgram_2 extends STProgram
-    constructor: (@FunctionDef) ->
+    constructor: (@FunctionDef, @Program) ->
     analyze: (scope) ->
         @FunctionDef.analyze scope
+        @Program.analyze scope
     codegen: (scope, target) ->
         @FunctionDef.codegen scope, target
+        @Program.codegen scope, target
 
 class STProgram_3 extends STProgram
-    constructor: (@RecordDef) ->
+    constructor: (@RecordDef, @Program) ->
     analyze: (scope) ->
         @RecordDef.analyze scope
+        @Program.analyze scope
     codegen: (scope, target) ->
         @RecordDef.codegen scope, target
+        @Program.codegen scope, target
 
 class STFunctionDef_1 extends STFunctionDef
     constructor: (@Type, @ID, @SLP, @ArgList, @SRP, @LLP, @Statements, @LRP) ->
     analyze: (scope) ->
         argScope = new Scope scope
-        ChildScope = new Scope scope
+        childScope = new Scope scope
         @ArgList.analyze argScope
         args = argScope.allSymbols()
+        childScope.add i.name, i.type, '<arg>' for i in args
         @Statements.analyze childScope
         scope.typeDef @ID.value,
             name: @ID.value
@@ -93,7 +94,9 @@ class STFunctionDef_1 extends STFunctionDef
             ret: @Type.value
             arg: args
             scope: childScope
+        scope.add @ID.value, @ID.value # 在全局作用域中添加指向这个函数的指针，它的值需要在程序初始化时补上它的值
     codegen: (scope, target) ->
+        target.gen "function #{@ID.value}:"
         funcInfo = scope.getType @ID.value
         funcInfo.pos = do target.nextPos
         @Statements.codegen funcInfo.scope, target
@@ -137,38 +140,36 @@ class STArgList_tail_2 extends STArgList_tail
 class STVariable_1 extends STVariable
     constructor: (@ID, @IndexList) ->
     analyze: (scope) ->
-        dimList = scope.find(@ID.value).type.split('*')
-        dimList.push getTypeLength dimList.shift()
-        @IndexList.analyze scope, dimList
+        @IndexList.analyze scope
     codegen: (scope, target) ->
         symbol = scope.find @ID.value
-        @IndexList.codegen scope, target
+        dimList = symbol.type.split('*')
+        dimList.push getTypeLength dimList.shift(), scope
+        @IndexList.codegen scope, target, dimList
         if ref = @IndexList.value
-            target.gen tempVal.get(), '=', "#{symbol.name}[#{ref}]:#{symbol.pos+ref}"
-            @value = tempVal.next()
+            @value = "#{symbol.name}[#{ref}]:#{symbol.pos}+#{ref}"
         else
             @value = "#{symbol.name}:#{symbol.pos}"
 
-
 class STIndexList_1 extends STIndexList
     constructor: ->
-    analyze: -> @distence = 1
-    codegen: ->
+    analyze: ->
+    codegen: -> @distence = 1
 
 class STIndexList_2 extends STIndexList
     constructor: (@Index, @IndexList) ->
-    analyze: (scope, dimList) ->
+    analyze: (scope) ->
         @Index.analyze scope
-        @IndexList.analyze scope dimList
+        @IndexList.analyze scope
+    codegen: (scope, target, dimList) ->
+        @IndexList.codegen scope, target, dimList
         @distence = dimList.pop() * @IndexList.distence
         throw new Error 'fucked134u12' if not dimList.length
-    codegen: (scope, target) ->
-        @IndexList.codegen scope, target
         @Index.codegen scope, target
-        target.gen tempVal.get(), '=', @Index.value, '*', @distence
+        target.gen tempVal.curr(), '=', @Index.value, '*', @distence
         if ref = @IndexList.value
             temp = tempVal.next()
-            target.gen tempVal.get(), '=', temp, '+', ref
+            target.gen tempVal.curr(), '=', temp, '+', ref
         @value = tempVal.next()
 
 class STIndex_1 extends STIndex
@@ -255,6 +256,9 @@ class STStatement_5 extends STStatement
 class STStatement_6 extends STStatement
     constructor: (@RETURN, @Expression) ->
     analyze: (scope) -> @Expression.analyze scope
+    codegen: (scope, target) ->
+        @Expression.codegen scope, target
+        target.gen 'return', @Expression.value
 
 class STStatement_else_1 extends STStatement_else
     constructor: ->
@@ -269,16 +273,16 @@ class STStatement_else_2 extends STStatement_else
 class STStatement_assignorcall_1 extends STStatement_assignorcall
     constructor: (@EQ, @Expression, @LF) ->
     analyze: (scope) -> @Expression.analyze scope
-    codegen: (scope, target, name) ->
+    codegen: (scope, target, left) ->
         @Expression.codegen scope, target
-        left = scope.find name
-        target.gen "#{left.name}:#{left.pos}", '=', @Expression.value
+        target.gen left, '=', @Expression.value
 
 class STStatement_assignorcall_2 extends STStatement_assignorcall
     constructor: (@SLP, @VarList, @SRP, @LF) ->
     analyze: (scope) -> @VarList.analyze scope
     codegen: (scope, target, name) ->
         @VarList.codegen scope, target
+        name = name.split(':')[0]
         lambda = scope.getType scope.find(name).type
         if @VarList.value
             target.gen 'goto', "pc+#{@VarList.value.length+1}"
@@ -337,7 +341,7 @@ class STExpression_tail_2 extends STExpression_tail
         @Expression_tail.analyze scope
     codegen: (scope, target, left) ->
         @Expression_atom.codegen scope, target
-        target.gen tempVal.get(), '=', left, @OP.value, @Expression_atom.value
+        target.gen tempVal.curr(), '=', left, @OP.value, @Expression_atom.value
         @Expression_tail.codegen scope, target, tempVal.next()
         @value = @Expression_tail.value
 
@@ -375,11 +379,12 @@ class STExpression_atom_call_2 extends STExpression_atom_call
     analyze: (scope) -> @VarList.analyze scope
     codegen: (scope, target, name) ->
         @VarList.codegen scope, target
+        name = name.split(':')[0]
         lambda = scope.getType scope.find(name).type
         if @VarList.value
             target.gen 'goto', "pc+#{@VarList.value.length+1}"
-            target.gen tempVal.get(), '=', 'param', param for param in @VarList.value
-        target.gen 'call', lambda.name, @VarList.value.length ? 0
+            target.gen 'param', param for param in @VarList.value
+        target.gen tempVal.curr(), '=', 'call', lambda.name, @VarList.value.length ? 0
         @value = tempVal.next()
 
 class STConst_1 extends STConst
@@ -521,7 +526,7 @@ buildTree = (nodes) ->
     nodes = nodes[...]
     buildOne = ->
         node = do nodes.shift
-        return if not node
+        return console.log 'an error occur' if not node
         switch node.type
             when 'terminal'
                 node.token
@@ -537,21 +542,26 @@ analyze = (root) ->
     root.analyze global
     global
 
+loadBuiltIn = (scope) ->
+    scope.typeDef 'print<built-in>',
+        name: 'print<built-in>'
+        type: 'function'
+        ret: 'INT'
+        arg: [{pos:'#', name:'#', type:'#'}]
+        scope: new Scope
+    scope.add 'print', 'print<built-in>'
+
 codegen = (STNode, scope) ->
     target = new Target
     STNode.codegen scope, target
     target
 
-window.Semantic = {
-    buildTree,
-    analyze,
-    codegen
-}
-
-window.test = ->
+window.Semantic = (nodes) ->
     root = buildTree(nodes)
     global = analyze(root)
-    codegen(root, global)
+    loadBuiltIn(global)
+    target = codegen(root, global)
+    console.log target.format((x...) -> x.join(' ')).join('\n')
 
 # helpers
 extract = (field) ->
@@ -560,7 +570,7 @@ extract = (field) ->
 isNotIpsilon = (x) ->
     x isnt 'ε'
 
-getTypeLength = (type, scope) ->
+getTypeLength = (type, scope) -> # TODO: 有没有可能出现死循环？
     switch type
         when 'INT'
             4
@@ -576,7 +586,7 @@ getTypeLength = (type, scope) ->
             if '*' in type # Array
                 [f,t...] = type.split '*'
                 length = t.reduce (x, y) -> x * y
-                length * getTypeLength f
+                length * getTypeLength f, scope
             else # Record or Function
                 scope.getType(type).length ? 4
 

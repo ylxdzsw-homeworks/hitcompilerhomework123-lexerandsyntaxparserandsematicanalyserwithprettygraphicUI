@@ -11,8 +11,9 @@ window.start = (code) ->
     {input, output} = format code, tokens
     $("#input>pre").html input
     $("#output>pre").html output
-    window.nodes = window.Syntax.analyze tokens
-    $("#syntax>pre").html formatTree window.nodes
+    nodes = window.Syntax.analyze tokens
+    $("#syntax>pre").html formatTree nodes
+    window.Semantic(nodes)
 
 format = (code, tokens) ->
     code = code.split('')

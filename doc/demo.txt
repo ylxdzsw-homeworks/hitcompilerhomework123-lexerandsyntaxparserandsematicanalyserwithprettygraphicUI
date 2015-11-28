@@ -17,6 +17,7 @@ int main() {
         print(y)
     }else{
     }
+    return 0
 }
 
 int add(int a, int b) {
