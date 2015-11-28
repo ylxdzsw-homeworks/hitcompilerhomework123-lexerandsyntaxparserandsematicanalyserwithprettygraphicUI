@@ -23,9 +23,9 @@ class Scope
 
 class Target
     constructor: -> @code = []
-    get: (i) -> @code[i]
+    get: (i) -> @code[i-1]
     gen: (a,b,c,d,e) -> @code.push [a,b,c,d,e]
-    nextPos: -> @code.length
+    nextPos: -> @code.length+1
     format: (formatter) -> formatter line,a,b,c,d,e for [a,b,c,d,e], line in @code
 
 class STNode
@@ -86,7 +86,7 @@ class STFunctionDef_1 extends STFunctionDef
         childScope = new Scope scope
         @ArgList.analyze argScope
         args = argScope.allSymbols()
-        childScope.add i.name, i.type, '<arg>' for i in args
+        childScope.add i.name, i.type, 'arg' for i in args
         @Statements.analyze childScope
         scope.typeDef @ID.value,
             name: @ID.value
@@ -543,13 +543,13 @@ analyze = (root) ->
     global
 
 loadBuiltIn = (scope) ->
-    scope.typeDef 'print<built-in>',
-        name: 'print<built-in>'
+    scope.typeDef 'print(built-in)',
+        name: 'print(built-in)'
         type: 'function'
         ret: 'INT'
         arg: [{pos:'#', name:'#', type:'#'}]
         scope: new Scope
-    scope.add 'print', 'print<built-in>'
+    scope.add 'print', 'print(built-in)'
 
 codegen = (STNode, scope) ->
     target = new Target
@@ -561,7 +561,6 @@ window.Semantic = (nodes) ->
     global = analyze(root)
     loadBuiltIn(global)
     target = codegen(root, global)
-    console.log target.format((x...) -> x.join(' ')).join('\n')
 
 # helpers
 extract = (field) ->

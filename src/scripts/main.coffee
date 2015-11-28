@@ -1,5 +1,5 @@
 # 设置prettyprint
-# PR['registerLangHandler'](PR['createSimpleLexer']([],[]),['empty'])
+PR['registerLangHandler'](PR['createSimpleLexer']([],[]),['empty'])
 
 window.start = (code) ->
     lexer = Lexer code
@@ -10,10 +10,10 @@ window.start = (code) ->
         break if x.type is '$'
     {input, output} = format code, tokens
     $("#input>pre").html input
-    $("#output>pre").html output
+    $("#lex>pre").html output
     nodes = window.Syntax.analyze tokens
     $("#syntax>pre").html formatTree nodes
-    window.Semantic(nodes)
+    $("#semantic>pre").html formatTriple window.Semantic(nodes)
 
 format = (code, tokens) ->
     code = code.split('')
@@ -61,6 +61,35 @@ formatTree = (nodes) ->
             when 'error'
                 output += """<span class="error">#{node.content}</span>\n"""
     output
+
+formatTriple = (tri) ->
+    result = tri.format (line, x...) ->
+        if /^function/.test x[0]
+            return x.join ''
+        if /^error/.test x[0]
+            return """<span class="error">#{x.join ''}</span>"""
+        x = x.map (i) ->
+            switch i
+                when 'goto'
+                    """<span class="goto">goto</span>"""
+                when 'param'
+                    """<span class="param">param</span>"""
+                when 'call'
+                    """<span class="call">call</span>"""
+                when 'return'
+                    """<span class="return">return</span>"""
+                else
+                    if not _.isNaN Number i
+                        """<span class="number">#{i}</span>"""
+                    else
+                        x = i?.split?(':')
+                        if x and x.length >= 2
+                            """#{x[0]}<span class="address">:#{x[1]}</span>"""
+                        else
+                            i
+        x.unshift '  '
+        x.join ' '
+    result.join '\n'
 
 window.activate = (id) ->
     $(".map-#{id}").addClass 'active'
