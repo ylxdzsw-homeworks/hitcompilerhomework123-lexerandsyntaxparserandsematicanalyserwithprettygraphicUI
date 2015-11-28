@@ -88,6 +88,7 @@ class STFunctionDef_1 extends STFunctionDef
         args = argScope.allSymbols()
         childScope.add i.name, i.type, 'arg' for i in args
         @Statements.analyze childScope
+        @Type.analyze scope
         scope.typeDef @ID.value,
             name: @ID.value
             type: 'function'
@@ -95,6 +96,7 @@ class STFunctionDef_1 extends STFunctionDef
             arg: args
             scope: childScope
         scope.add @ID.value, @ID.value # 在全局作用域中添加指向这个函数的指针，它的值需要在程序初始化时补上它的值
+        childScope.fun = @ID.value
     codegen: (scope, target) ->
         target.gen "function #{@ID.value}:"
         funcInfo = scope.getType @ID.value
@@ -143,9 +145,13 @@ class STVariable_1 extends STVariable
         @IndexList.analyze scope
     codegen: (scope, target) ->
         symbol = scope.find @ID.value
+        if not symbol
+            @value = '*error*'
+            return errorCollector.add "error at #{@ID.start}: #{@ID.value}未定义"
         dimList = symbol.type.split('*')
         dimList.push getTypeLength dimList.shift(), scope
         @IndexList.codegen scope, target, dimList
+        @type = symbol.type.split('*')[0]
         if ref = @IndexList.value
             @value = "#{symbol.name}[#{ref}]:#{symbol.pos}+#{ref}"
         else
@@ -178,13 +184,17 @@ class STIndex_1 extends STIndex
         @Expression.analyze scope
     codegen: (scope, target) ->
         @Expression.codegen scope, target
+        target.gen 'error: 索引不是INT' if @Expression.type isnt 'INT'
         @value = @Expression.value
 
 class STVarDef_1 extends STVarDef
     constructor: (@Type, @ID) ->
     analyze: (scope) ->
         @Type.analyze scope
-        scope.add @ID.value, @Type.value
+        if scope.has @ID.value, false
+            errorCollector.add "error at #{@ID.start}: 重复定义变量#{@ID.value}"
+        else
+            scope.add @ID.value, @Type.value
     codegen: ->
 
 class STStatements_1 extends STStatements
@@ -218,7 +228,7 @@ class STStatement_3 extends STStatement
         @Statement_assignorcall.analyze scope
     codegen: (scope, target) ->
         @Variable.codegen scope, target
-        @Statement_assignorcall.codegen scope, target, @Variable.value
+        @Statement_assignorcall.codegen scope, target, @Variable
 
 class STStatement_4 extends STStatement
     constructor: (@WHILE, @SLP, @Expression, @SRP, @Statement) ->
@@ -229,6 +239,7 @@ class STStatement_4 extends STStatement
         pos1 = target.nextPos()
         @Expression.codegen scope, target
         pos2 = target.nextPos()
+        target.gen 'error: 条件不是INT' if @Expression.type isnt 'INT'
         target.gen 'if', @Expression.value, 'goto', null
         @Statement.codegen scope, target
         target.gen 'goto', pos1
@@ -243,6 +254,7 @@ class STStatement_5 extends STStatement
         @Statement_else.analyze scope
     codegen: (scope, target) ->
         @Expression.codegen scope, target
+        target.gen 'error: 条件不是INT' if @Expression.type isnt 'INT'
         pos1 = target.nextPos()
         target.gen 'if', @Expression.value, 'goto', null
         @Statement_else.codegen scope, target
@@ -258,6 +270,8 @@ class STStatement_6 extends STStatement
     analyze: (scope) -> @Expression.analyze scope
     codegen: (scope, target) ->
         @Expression.codegen scope, target
+
+        target.gen 'error: 返回值类型不匹配' if @Expression.type isnt scope.getType(scope.fun).ret
         target.gen 'return', @Expression.value
 
 class STStatement_else_1 extends STStatement_else
@@ -275,15 +289,17 @@ class STStatement_assignorcall_1 extends STStatement_assignorcall
     analyze: (scope) -> @Expression.analyze scope
     codegen: (scope, target, left) ->
         @Expression.codegen scope, target
-        target.gen left, '=', @Expression.value
+        target.gen "error: 赋值类型不匹配" if left.type isnt @Expression.type
+        target.gen left.value, '=', @Expression.value
 
 class STStatement_assignorcall_2 extends STStatement_assignorcall
     constructor: (@SLP, @VarList, @SRP, @LF) ->
     analyze: (scope) -> @VarList.analyze scope
-    codegen: (scope, target, name) ->
+    codegen: (scope, target, left) ->
         @VarList.codegen scope, target
-        name = name.split(':')[0]
-        lambda = scope.getType scope.find(name).type
+        lambda = scope.getType left.type
+        if not lambda
+            return target.gen "error: #{left.value}不是函数"
         if @VarList.value
             target.gen 'goto', "pc+#{@VarList.value.length+1}"
             target.gen 'param', param for param in @VarList.value
@@ -326,13 +342,16 @@ class STExpression_1 extends STExpression
         @Expression_tail.analyze scope
     codegen: (scope, target) ->
         @Expression_atom.codegen scope, target
-        @Expression_tail.codegen scope, target, @Expression_atom.value
+        @Expression_tail.codegen scope, target, @Expression_atom
+        @type = @Expression_tail.type
         @value = @Expression_tail.value
 
 class STExpression_tail_1 extends STExpression_tail
     constructor: ->
     analyze: ->
-    codegen: (scope, target, left) -> @value = left
+    codegen: (scope, target, left) ->
+        @type = left.type
+        @value = left.value
 
 class STExpression_tail_2 extends STExpression_tail
     constructor: (@OP, @Expression_atom, @Expression_tail) ->
@@ -341,8 +360,9 @@ class STExpression_tail_2 extends STExpression_tail
         @Expression_tail.analyze scope
     codegen: (scope, target, left) ->
         @Expression_atom.codegen scope, target
-        target.gen tempVal.curr(), '=', left, @OP.value, @Expression_atom.value
-        @Expression_tail.codegen scope, target, tempVal.next()
+        target.gen tempVal.curr(), '=', left.value, @OP.value, @Expression_atom.value
+        @Expression_tail.codegen scope, target, {type:left.type,value:tempVal.next()}
+        @type = @Expression_tail.type
         @value = @Expression_tail.value
 
 class STExpression_atom_1 extends STExpression_atom
@@ -350,6 +370,7 @@ class STExpression_atom_1 extends STExpression_atom
     analyze: (scope) -> @Expression.analyze scope
     codegen: (scope, target) ->
         @Expression.codegen scope, target
+        @type = @Expression_tail.type
         @value = @Expression.value
 
 class STExpression_atom_2 extends STExpression_atom
@@ -359,7 +380,8 @@ class STExpression_atom_2 extends STExpression_atom
         @Expression_atom_call.analyze scope
     codegen: (scope, target) ->
         @Variable.codegen scope, target
-        @Expression_atom_call.codegen scope, target, @Variable.value
+        @Expression_atom_call.codegen scope, target, @Variable
+        @type = @Expression_atom_call.type
         @value = @Expression_atom_call.value
 
 class STExpression_atom_3 extends STExpression_atom
@@ -367,24 +389,27 @@ class STExpression_atom_3 extends STExpression_atom
     analyze: (scope) -> @Const.analyze scope
     codegen: (scope, target) ->
         @Const.codegen scope, target
+        @type = @Const.type
         @value = @Const.value
 
 class STExpression_atom_call_1 extends STExpression_atom_call
     constructor: ->
     analyze: ->
-    codegen: (scope, target, left) -> @value = left
+    codegen: (scope, target, left) ->
+        @type = left.type
+        @value = left.value
 
 class STExpression_atom_call_2 extends STExpression_atom_call
     constructor: (@SLP, @VarList, @SRP) ->
     analyze: (scope) -> @VarList.analyze scope
-    codegen: (scope, target, name) ->
+    codegen: (scope, target, left) ->
         @VarList.codegen scope, target
-        name = name.split(':')[0]
-        lambda = scope.getType scope.find(name).type
+        lambda = scope.getType left.type
         if @VarList.value
             target.gen 'goto', "pc+#{@VarList.value.length+1}"
             target.gen 'param', param for param in @VarList.value
         target.gen tempVal.curr(), '=', 'call', lambda.name, @VarList.value.length ? 0
+        @type = lambda.ret
         @value = tempVal.next()
 
 class STConst_1 extends STConst
@@ -557,10 +582,12 @@ codegen = (STNode, scope) ->
     target
 
 window.Semantic = (nodes) ->
-    root = buildTree(nodes)
-    global = analyze(root)
-    loadBuiltIn(global)
-    target = codegen(root, global)
+    root = buildTree nodes
+    global = analyze root
+    loadBuiltIn global
+    target = codegen root, global
+    errorCollector.gen target
+    target
 
 # helpers
 extract = (field) ->
@@ -593,3 +620,8 @@ tempVal = do ->
     n = 0
     curr: -> "t#{n}"
     next: -> "t#{n++}"
+
+errorCollector = do ->
+    errors = []
+    add: (err) -> errors.push err
+    gen: (target) -> target.gen i for i in errors

@@ -12,6 +12,8 @@ int main() {
         x[i] = 1
         x = x + 1
     }
+    int y
+    y()
     y = add(x[0], x[1])
     if(y != 0){
         print(y)
