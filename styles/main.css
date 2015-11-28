@@ -1,6 +1,7 @@
 body {
   background-color: azure;
   margin: 0 0 0 0;
+  width: 160%;
 }
 .clear {
   clear: both;
@@ -32,4 +33,22 @@ pre.prettyprint span.errormsg {
 pre.prettyprint span.active {
   background-color: yellow;
   color: black;
+}
+pre.prettyprint span.address {
+  color: gray;
+}
+pre.prettyprint span.goto {
+  color: #FF8484;
+}
+pre.prettyprint span.param {
+  color: #FF8484;
+}
+pre.prettyprint span.call {
+  color: #FF8484;
+}
+pre.prettyprint span.return {
+  color: #FF8484;
+}
+pre.prettyprint span.number {
+  color: #72FF60;
 }

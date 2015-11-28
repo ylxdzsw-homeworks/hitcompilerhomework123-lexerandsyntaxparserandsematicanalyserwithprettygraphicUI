@@ -1,9 +1,9 @@
-#output {
+#syntax {
   float: left;
-  height: 650px;
-  width: 50%;
+  height: 750px;
+  width: 40%;
 }
-#output ol.linenums {
+#syntax ol.linenums {
   padding-left: 5px;
   list-style-type: none;
 }

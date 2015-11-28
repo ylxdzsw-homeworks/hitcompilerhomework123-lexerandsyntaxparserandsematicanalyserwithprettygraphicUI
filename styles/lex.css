@@ -1,0 +1,12 @@
+#lex {
+  float: left;
+  height: 750px;
+  width: 20%;
+}
+#lex ol.linenums {
+  padding-left: 5px;
+  list-style-type: none;
+}
+.error {
+  color: #ff0000;
+}

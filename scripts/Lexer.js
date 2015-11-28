@@ -36,7 +36,7 @@
       if (this.type === 'ID|KEY|BOOL') {
         if (ref = this.value, indexOf.call(keywords, ref) >= 0) {
           this.type = this.value.toUpperCase();
-          this.value = '_';
+          this.value = null;
         } else if ((ref1 = this.value) === 'true' || ref1 === 'false') {
           this.type = 'BOOL';
         } else {
@@ -70,7 +70,7 @@
 
   inputs.all = inputs.letter + inputs.number + inputs.symbol + inputs.space;
 
-  keywords = ['int', 'float', 'bool', 'string', 'char', 'record', 'if', 'else', 'do', 'while'];
+  keywords = ['int', 'float', 'bool', 'string', 'char', 'record', 'if', 'else', 'while', 'call', 'return'];
 
   NFAStates = {
     start: FAState(null),
@@ -386,7 +386,7 @@
     Dstates = [calcEpsilonClosureT('start')];
     Dmove = [];
     DFAMoveHash = {};
-    DFAStates = [];
+    DFAStates = {};
     unFind = [0];
     while (unFind.length) {
       T = Dstates[unFind.pop()];
@@ -555,7 +555,7 @@
         if (type = DFA.state[state].type) {
           return new Token(type, (DFA.state[state].value ? val : null), position, getPos());
         } else if (state === 'start') {
-          return null;
+          return new Token('$', null, position, getPos());
         } else {
           return new Token('ERROR', "Early EOF", position, getPos());
         }
