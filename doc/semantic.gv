@@ -1,0 +1,22 @@
+digraph NFA {
+    node [fontsize=20 fontname="Microsoft YaHei"]
+    edge [fontsize=20 fontname=Consolas]
+
+    S [label="词义分析器"]
+    s1    [label="图形界面"]
+    s2    [label="语义分析框架"]
+    s3    [label="语义动作定义"]
+    s4    [label="构建语法树"]
+    s5    [label="提取声明构建作用域链(树)"]
+    s6    [label="遍历语法树生成三地址码"]
+    s7    [label="输出三地址码并进行语法高亮"]
+
+    S -> s1
+    S -> s2
+    S -> s3
+
+    s2 -> s4
+    s2 -> s5
+    s2 -> s6
+    s1 -> s7
+}
